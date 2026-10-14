@@ -1,0 +1,803 @@
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '../services/api'
+import { useAuthStore } from '../stores/auth'
+const router = useRouter()
+const authStore = useAuthStore()
+const clientes = ref([])
+const busqueda = ref('')
+const cargando = ref(true)
+const guardando = ref(false)
+const mostrarFormulario = ref(false)
+const mensaje = ref('')
+const tipoMensaje = ref('')
+const formulario = reactive({
+  tipo_documento: 'DNI',
+  numero_documento: '',
+  nombres: '',
+  apellidos: '',
+  correo: '',
+  telefono: '',
+  clave: '',
+  codigo_servicio: '',
+  nombre_plan: '',
+  velocidad_mbps: '',
+  direccion_instalacion: '',
+  distrito: '',
+})
+const clientesFiltrados = computed(() => {
+  const texto = busqueda.value.toLowerCase().trim()
+  if (!texto) {
+    return clientes.value
+  }
+  return clientes.value.filter((cliente) => {
+    const nombreCompleto =
+      `${cliente.nombres} ${cliente.apellidos}`.toLowerCase()
+    return (
+      nombreCompleto.includes(texto) ||
+      cliente.numero_documento
+        ?.toLowerCase()
+        .includes(texto) ||
+      cliente.correo?.toLowerCase().includes(texto) ||
+      cliente.codigo_servicio
+        ?.toLowerCase()
+        .includes(texto)
+    )
+  })
+})
+const cargarClientes = async () => {
+  cargando.value = true
+  try {
+    const respuesta = await api.get('/clientes')
+    clientes.value = respuesta.data.clientes
+  } catch (error) {
+    if (error.response?.status === 401) {
+      await authStore.cerrarSesion()
+      router.push('/login')
+      return
+    }
+    tipoMensaje.value = 'error'
+    mensaje.value =
+      error.response?.data?.message ||
+      'No se pudieron cargar los clientes.'
+  } finally {
+    cargando.value = false
+  }
+}
+const limpiarFormulario = () => {
+  formulario.tipo_documento = 'DNI'
+  formulario.numero_documento = ''
+  formulario.nombres = ''
+  formulario.apellidos = ''
+  formulario.correo = ''
+  formulario.telefono = ''
+  formulario.clave = ''
+  formulario.codigo_servicio = ''
+  formulario.nombre_plan = ''
+  formulario.velocidad_mbps = ''
+  formulario.direccion_instalacion = ''
+  formulario.distrito = ''
+}
+const abrirFormulario = () => {
+  mensaje.value = ''
+  limpiarFormulario()
+  mostrarFormulario.value = true
+}
+const cerrarFormulario = () => {
+  if (!guardando.value) {
+    mostrarFormulario.value = false
+  }
+}
+const registrarCliente = async () => {
+  guardando.value = true
+  mensaje.value = ''
+  try {
+    const respuesta = await api.post(
+      '/clientes',
+      formulario
+    )
+    tipoMensaje.value = 'success'
+    mensaje.value = respuesta.data.message
+    mostrarFormulario.value = false
+    await cargarClientes()
+  } catch (error) {
+    tipoMensaje.value = 'error'
+    mensaje.value =
+      error.response?.data?.message ||
+      'No se pudo registrar el cliente.'
+  } finally {
+    guardando.value = false
+  }
+}
+const cerrarSesion = async () => {
+  await authStore.cerrarSesion()
+  router.push('/login')
+}
+onMounted(cargarClientes)
+</script>
+<template>
+  <div class="app-layout" translate="no">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">M</div>
+        <strong>Movistar</strong>
+      </div>
+      <nav class="menu">
+        <button
+          class="menu-item"
+          @click="router.push('/dashboard')"
+        >
+          <i class="bi bi-grid-1x2-fill"></i>
+          Panel principal
+        </button>
+        <button
+          class="menu-item"
+          @click="router.push('/incidencias')"
+        >
+          <i class="bi bi-ticket-perforated"></i>
+          Incidencias
+        </button>
+        <button class="menu-item active">
+          <i class="bi bi-people"></i>
+          Usuarios
+        </button>
+        <button class="menu-item" type="button" @click="router.push('/tecnicos')">
+          <i class="bi bi-person-gear"></i>
+          Técnicos
+        </button>
+        <button class="menu-item">
+          <i class="bi bi-bar-chart"></i>
+          Reportes
+        </button>
+        <button class="menu-item">
+          <i class="bi bi-gear"></i>
+          Configuración
+        </button>
+      </nav>
+      <button
+        class="logout-button"
+        @click="cerrarSesion"
+      >
+        <i class="bi bi-box-arrow-left"></i>
+        Cerrar sesión
+      </button>
+    </aside>
+    <main class="content">
+      <header class="topbar">
+        <div></div>
+        <div class="user">
+          <strong>
+            {{ authStore.usuario?.nombres }}
+            {{ authStore.usuario?.apellidos }}
+          </strong>
+          <div class="avatar">
+            {{ authStore.usuario?.nombres?.charAt(0) }}
+          </div>
+        </div>
+      </header>
+      <div
+        v-if="mensaje"
+        :class="['alerta', tipoMensaje]"
+      >
+        <i
+          :class="
+            tipoMensaje === 'success'
+              ? 'bi bi-check-circle'
+              : 'bi bi-exclamation-circle'
+          "
+        ></i>
+        {{ mensaje }}
+      </div>
+      <section class="panel">
+        <div class="panel-header">
+          <div class="search">
+            <i class="bi bi-search"></i>
+            <input
+              v-model="busqueda"
+              type="search"
+              placeholder="Buscar por nombre, documento o servicio"
+            />
+          </div>
+          <button
+            class="primary-button"
+            @click="abrirFormulario"
+          >
+            <i class="bi bi-person-plus"></i>
+            Registrar cliente
+          </button>
+        </div>
+
+        <div v-if="cargando" class="loading">
+          <span class="spinner-border"></span>
+          Cargando usuarios...
+        </div>
+        <div
+          v-else-if="clientesFiltrados.length === 0"
+          class="empty-state"
+        >
+          <i class="bi bi-people"></i>
+          <strong>No existen clientes registrados</strong>
+        </div>
+        <div v-else class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Cliente</th>
+                <th>Correo</th>
+                <th>Servicio</th>
+                <th>Plan</th>
+                <th>Velocidad</th>
+                <th>Distrito</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="cliente in clientesFiltrados"
+                :key="cliente.id"
+              >
+                <td>
+                  {{ cliente.tipo_documento }}
+                  {{ cliente.numero_documento }}
+                </td>
+
+                <td>
+                  <strong>
+                    {{ cliente.nombres }}
+                    {{ cliente.apellidos }}
+                  </strong>
+                </td>
+                <td>{{ cliente.correo }}</td>
+                <td>{{ cliente.codigo_servicio || '-' }}</td>
+                <td>{{ cliente.nombre_plan || '-' }}</td>
+                <td>
+                  {{
+                    cliente.velocidad_mbps
+                      ? `${cliente.velocidad_mbps} Mbps`
+                      : '-'
+                  }}
+                </td>
+                <td>{{ cliente.distrito || '-' }}</td>
+                <td>
+                  <span class="estado">
+                    {{ cliente.estado }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <div
+      v-if="mostrarFormulario"
+      class="modal-backdrop"
+      @click.self="cerrarFormulario"
+    >
+      <section class="modal-card">
+        <header class="modal-header">
+          <div>
+            <h2>Registrar cliente</h2>
+          </div>
+          <button
+            type="button"
+            :disabled="guardando"
+            @click="cerrarFormulario"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </header>
+        <form @submit.prevent="registrarCliente">
+          <h3>Datos personales</h3>
+          <div class="form-row document-row">
+            <div class="form-group">
+              <label for="tipoDocumento">
+                Tipo de documento
+              </label>
+              <select
+                id="tipoDocumento"
+                v-model="formulario.tipo_documento"
+                required
+              >
+                <option value="DNI">DNI</option>
+                <option value="CE">Carné de extranjería</option>
+                <option value="PASAPORTE">Pasaporte</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="documento">
+                Número de documento
+              </label>
+              <input
+                id="documento"
+                v-model.trim="formulario.numero_documento"
+                type="text"
+                maxlength="20"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nombres">Nombres</label>
+              <input
+                id="nombres"
+                v-model.trim="formulario.nombres"
+                type="text"
+                maxlength="100"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="apellidos">Apellidos</label>
+              <input
+                id="apellidos"
+                v-model.trim="formulario.apellidos"
+                type="text"
+                maxlength="100"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="correo">Correo electrónico</label>
+              <input
+                id="correo"
+                v-model.trim="formulario.correo"
+                type="email"
+                maxlength="150"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="telefono">Teléfono</label>
+              <input
+                id="telefono"
+                v-model.trim="formulario.telefono"
+                type="text"
+                maxlength="20"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="clave">Contraseña inicial</label>
+            <input
+              id="clave"
+              v-model="formulario.clave"
+              type="password"
+              minlength="8"
+              autocomplete="new-password"
+              required
+            />
+          </div>
+          <h3>Servicio contratado</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="codigoServicio">
+                Código del servicio
+              </label>
+              <input
+                id="codigoServicio"
+                v-model.trim="formulario.codigo_servicio"
+                type="text"
+                maxlength="30"
+                placeholder="Ejemplo: SRV-000001"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="plan">Nombre del plan</label>
+              <input
+                id="plan"
+                v-model.trim="formulario.nombre_plan"
+                type="text"
+                maxlength="100"
+                placeholder="Ejemplo: Fibra 400 Mbps"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="velocidad">
+                Velocidad (Mbps)
+              </label>
+              <input
+                id="velocidad"
+                v-model.number="formulario.velocidad_mbps"
+                type="number"
+                min="1"
+                max="99999"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="distrito">Distrito</label>
+              <input
+                id="distrito"
+                v-model.trim="formulario.distrito"
+                type="text"
+                maxlength="100"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="direccion">
+              Dirección de instalación
+            </label>
+            <input
+              id="direccion"
+              v-model.trim="
+                formulario.direccion_instalacion
+              "
+              type="text"
+              maxlength="255"
+              required
+            />
+          </div>
+          <footer class="modal-actions">
+            <button
+              class="secondary-button"
+              type="button"
+              :disabled="guardando"
+              @click="cerrarFormulario"
+            >
+              Cancelar
+            </button>
+            <button
+              class="primary-button"
+              type="submit"
+              :disabled="guardando"
+            >
+              <span v-if="guardando">
+                <span
+                  class="spinner-border spinner-border-sm"
+                ></span>
+                Guardando...
+              </span>
+              <span v-else>Registrar cliente</span>
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  </div>
+</template>
+<style scoped>
+* {
+  box-sizing: border-box;
+}
+.app-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+  color: #18324a;
+  background: #f4f7fa;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  padding: 28px 18px;
+  color: white;
+  background: linear-gradient(180deg, #087ebc, #005d91);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 32px;
+  font-size: 22px;
+}
+.brand-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  color: #0783c2;
+  background: white;
+  font-size: 24px;
+  font-weight: 800;
+}
+.menu {
+  display: grid;
+  gap: 7px;
+}
+.menu-item,
+.logout-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 15px;
+  border: 0;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover,
+.menu-item.active,
+.logout-button:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.14);
+}
+.logout-button {
+  margin-top: auto;
+}
+.content {
+  min-width: 0;
+  padding: 30px 36px;
+}
+.topbar,
+.user,
+.panel-header {
+  display: flex;
+  align-items: center;
+}
+.topbar,
+.panel-header {
+  justify-content: space-between;
+}
+.topbar {
+  margin-bottom: 26px;
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 28px;
+}
+.user {
+  gap: 12px;
+  font-size: 14px;
+}
+.avatar {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #019be1;
+  font-weight: 800;
+}
+.alerta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.alerta.success {
+  color: #136b49;
+  background: #e4f7ee;
+}
+.alerta.error {
+  color: #9d3737;
+  background: #fdeaea;
+}
+.panel {
+  overflow: hidden;
+  min-height: 620px;
+  border: 1px solid #e4ebf1;
+  border-radius: 17px;
+  background: white;
+}
+.panel-header {
+  gap: 18px;
+  padding: 22px;
+  border-bottom: 1px solid #edf1f4;
+}
+.search {
+  position: relative;
+  width: min(100%, 430px);
+}
+.search i {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  color: #8494a3;
+  transform: translateY(-50%);
+}
+.search input {
+  width: 100%;
+  height: 43px;
+  padding: 0 14px 0 41px;
+  border: 1px solid #d9e2ea;
+  border-radius: 10px;
+  outline: none;
+}
+.primary-button,
+.secondary-button {
+  min-height: 43px;
+  padding: 0 17px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.primary-button {
+  border: 0;
+  color: white;
+  background: #019be1;
+}
+.secondary-button {
+  border: 1px solid #d8e1e9;
+  color: #536577;
+  background: white;
+}
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.loading,
+.empty-state {
+  display: flex;
+  min-height: 500px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: #8494a3;
+}
+.empty-state i {
+  font-size: 44px;
+}
+.table-container {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 15px 18px;
+  border-bottom: 1px solid #edf1f4;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+th {
+  color: #6b7e90;
+  background: #f8fafc;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.estado {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 20px;
+  color: #13704b;
+  background: #ddf5e9;
+  font-size: 10px;
+  font-weight: 800;
+}
+.modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: 30px 20px;
+  background: rgba(15, 35, 52, 0.55);
+  place-items: center;
+}
+.modal-card {
+  width: min(100%, 760px);
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  border-radius: 18px;
+  background: white;
+}
+.modal-header {
+  display: flex;
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px;
+  border-bottom: 1px solid #edf1f4;
+  background: white;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.modal-header button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.modal-card form {
+  padding: 24px 26px;
+}
+.modal-card h3 {
+  margin: 5px 0 17px;
+  color: #007fbe;
+  font-size: 14px;
+}
+.modal-card h3:not(:first-child) {
+  margin-top: 25px;
+  padding-top: 22px;
+  border-top: 1px solid #edf1f4;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.document-row {
+  grid-template-columns: 180px 1fr;
+}
+.form-group {
+  margin-bottom: 17px;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d9e2ea;
+  border-radius: 10px;
+  outline: none;
+}
+.form-group input:focus,
+.form-group select:focus,
+.search input:focus {
+  border-color: #019be1;
+  box-shadow: 0 0 0 3px rgba(1, 155, 225, 0.1);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 11px;
+  padding-top: 10px;
+}
+@media (max-width: 760px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    height: auto;
+  }
+  .menu,
+  .logout-button {
+    display: none;
+  }
+  .content {
+    padding: 22px 16px;
+  }
+  .panel-header,
+  .form-row,
+  .document-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .panel-header {
+    flex-direction: column;
+  }
+  .search {
+    width: 100%;
+  }
+}
+</style>

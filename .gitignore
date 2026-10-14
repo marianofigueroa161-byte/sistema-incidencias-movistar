@@ -1,0 +1,27 @@
+﻿# Configuración privada
+.env
+*.env
+backend/.env
+frontend/.env
+
+# Dependencias
+frontend/node_modules/
+backend/vendor/
+
+# Archivos generados
+frontend/dist/
+backend/writable/cache/*
+backend/writable/logs/*
+backend/writable/session/*
+backend/writable/debugbar/*
+
+# Archivos del sistema y editores
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Copias y carpetas antiguas de la raíz
+/movistar-incidencias/
+/src/
