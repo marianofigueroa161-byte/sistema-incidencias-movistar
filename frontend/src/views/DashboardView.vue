@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -34,7 +34,22 @@ const cerrarSesion = async () => {
   await authStore.cerrarSesion()
   router.push('/login')
 }
-onMounted(cargarDashboard)
+let intervaloActualizacion = null
+
+onMounted(() => {
+  cargarDashboard()
+  intervaloActualizacion = setInterval(() => {
+    if (!document.hidden && !cargando.value) {
+      cargarDashboard()
+    }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (intervaloActualizacion !== null) {
+    clearInterval(intervaloActualizacion)
+  }
+})
 </script>
 <template>
   <div class="dashboard">
@@ -64,10 +79,6 @@ onMounted(cargarDashboard)
           <i class="bi bi-bar-chart"></i>
           Reportes
         </button>
-        <button class="menu-item" type="button" @click="router.push('/configuracion')">
-          <i class="bi bi-gear"></i>
-          Configuración
-        </button>
       </nav>
       <button class="logout-button" @click="cerrarSesion">
         <i class="bi bi-box-arrow-left"></i>
@@ -75,21 +86,7 @@ onMounted(cargarDashboard)
       </button>
     </aside>
     <main class="content">
-      <header class="topbar">
-        <div>
-        </div>
-        <div class="user">
-          <div class="user-data">
-            <strong>
-              {{ authStore.usuario?.nombres }}
-              {{ authStore.usuario?.apellidos }}
-            </strong>
-          </div>
-          <div class="avatar">
-            {{ authStore.usuario?.nombres?.charAt(0) }}
-          </div>
-        </div>
-      </header>
+
       <section class="welcome">
         <div>
           <span>BIENVENIDO AL SISTEMA</span>
@@ -97,7 +94,7 @@ onMounted(cargarDashboard)
             Hola, {{ authStore.usuario?.nombres }}
           </h2>
         </div>
-        <i class="bi bi-headset"></i>
+
       </section>
       <section class="statistics">
         <article class="stat-card">
@@ -249,60 +246,15 @@ onMounted(cargarDashboard)
   background: rgba(255, 255, 255, 0.14);
 }
 .content {
-  padding: 30px 36px;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-}
-.topbar p {
-  margin: 0 0 5px;
-  color: #718295;
-  font-size: 13px;
-}
-.topbar h1 {
-  margin: 0;
-  font-size: 27px;
-}
-.user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.user-data {
-  text-align: right;
-}
-.user-data strong,
-.user-data span {
-  display: block;
-}
-.user-data strong {
-  font-size: 14px;
-}
-.user-data span {
-  margin-top: 3px;
-  color: #718295;
-  font-size: 11px;
-}
-.avatar {
-  display: grid;
-  width: 43px;
-  height: 43px;
-  place-items: center;
-  border-radius: 50%;
-  color: white;
-  background: #019be1;
-  font-weight: 800;
+  padding: 20px 24px;
 }
 .welcome {
   display: flex;
-  min-height: 180px;
+  min-height: 105px;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 25px;
-  padding: 30px 38px;
+  padding: 18px 24px;
   overflow: hidden;
   border-radius: 20px;
   color: white;
@@ -338,7 +290,7 @@ onMounted(cargarDashboard)
   display: flex;
   align-items: center;
   gap: 15px;
-  padding: 21px;
+  padding: 15px;
   border: 1px solid #e6edf2;
   border-radius: 16px;
   background: white;
@@ -386,8 +338,8 @@ onMounted(cargarDashboard)
   gap: 20px;
 }
 .panel {
-  min-height: 280px;
-  padding: 24px;
+  min-height: 0;
+  padding: 16px;
   border: 1px solid #e6edf2;
   border-radius: 17px;
   background: white;
@@ -416,7 +368,7 @@ onMounted(cargarDashboard)
 }
 .empty-state {
   display: flex;
-  min-height: 200px;
+  min-height: 120px;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -484,8 +436,77 @@ th {
   .statistics {
     grid-template-columns: 1fr;
   }
-  .user-data {
-    display: none;
+}
+.sidebar {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  padding-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.sidebar .menu {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0;
+}
+
+.sidebar .menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.sidebar .menu-item.active {
+  border-left: 4px solid #ffffff;
+  padding-left: 11px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+}
+
+.sidebar .logout-button {
+  flex-shrink: 0;
+  margin-top: 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  font-weight: 600;
+}
+
+.sidebar .logout-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    min-height: auto;
+    height: auto;
+  }
+
+  .sidebar .menu {
+    flex: initial;
+    gap: 8px;
   }
 }
 </style>

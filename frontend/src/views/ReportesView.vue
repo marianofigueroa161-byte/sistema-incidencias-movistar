@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -95,7 +95,23 @@ const cerrarSesion = async () => {
   await authStore.cerrarSesion()
   router.push('/login')
 }
-onMounted(cargarReporte)
+let intervaloActualizacion = null
+
+onMounted(() => {
+  cargarReporte()
+
+  intervaloActualizacion = setInterval(() => {
+    if (!document.hidden && !cargando.value) {
+      cargarReporte()
+    }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (intervaloActualizacion !== null) {
+    clearInterval(intervaloActualizacion)
+  }
+})
 </script>
 <template>
   <div class="app-layout">
@@ -107,20 +123,16 @@ onMounted(cargarReporte)
         <button class="menu-item" type="button" @click="router.push('/usuarios')"><i class="bi bi-people"></i>Usuarios</button>
         <button class="menu-item" type="button" @click="router.push('/tecnicos')"><i class="bi bi-person-gear"></i>Técnicos</button>
         <button class="menu-item active" type="button"><i class="bi bi-bar-chart"></i>Reportes</button>
-        <button class="menu-item" type="button" @click="router.push('/configuracion')"><i class="bi bi-gear"></i>Configuración</button>
       </nav>
       <button class="logout-button" type="button" @click="cerrarSesion"><i class="bi bi-box-arrow-left"></i>Cerrar sesión</button>
     </aside>
     <main class="content">
-      <header class="topbar">ss
-        <div></div>
-        <div class="user"><strong>{{ authStore.usuario?.nombres }} {{ authStore.usuario?.apellidos }}</strong><div class="avatar">{{ authStore.usuario?.nombres?.charAt(0) }}</div></div>
-      </header>
+
       <div v-if="mensaje" class="alerta"><i class="bi bi-exclamation-circle"></i>{{ mensaje }}</div>
       <section class="filters-card">
         <div class="filter-group"><label>Desde</label><input v-model="fechaInicio" type="date" /></div>
         <div class="filter-group"><label>Hasta</label><input v-model="fechaFin" type="date" /></div>
-        <div class="filter-group"><label>Estado</label><select v-model="filtroEstado"><option value="">Todos los estados</option><option value="REGISTRADO">Registrado</option><option value="ASIGNADO">Asignado</option><option value="EN_PROCESO">En proceso</option><option value="SOLUCIONADO">Solucionado</option><option value="CERRADO">Cerrado</option></select></div>
+        <div class="filter-group"><label>Estado</label><select v-model="filtroEstado"><option value="" hidden></option><option value="REGISTRADO">Registrado</option><option value="ASIGNADO">Asignado</option><option value="EN_PROCESO">En proceso</option><option value="SOLUCIONADO">Solucionado</option><option value="CERRADO">Cerrado</option></select></div>
         <button class="secondary-button" type="button" @click="fechaInicio = ''; fechaFin = ''; filtroEstado = ''; mensaje = ''"><i class="bi bi-arrow-counterclockwise"></i>Limpiar</button>
         <button class="primary-button" type="button" @click="exportarCSV"><i class="bi bi-download"></i>Exportar CSV</button>
       </section>
@@ -163,7 +175,7 @@ onMounted(cargarReporte)
 .menu-item, .logout-button { display: flex; width: 100%; align-items: center; gap: 13px; padding: 13px 15px; border: 0; border-radius: 10px; color: rgba(255,255,255,.82); background: transparent; font-size: 14px; text-align: left; cursor: pointer; }
 .menu-item:hover, .menu-item.active, .logout-button:hover { color: white; background: rgba(255,255,255,.14); }
 .logout-button { margin-top: auto; }
-.content { min-width: 0; padding: 30px 36px; }
+.content { min-width: 0; padding: 20px 24px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
 .user { display: flex; align-items: center; gap: 12px; font-size: 14px; }
 .avatar { display: grid; width: 43px; height: 43px; place-items: center; border-radius: 50%; color: white; background: #019be1; font-weight: 800; }
@@ -175,9 +187,9 @@ onMounted(cargarReporte)
 .primary-button, .secondary-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; padding: 0 15px; border-radius: 9px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .primary-button { border: 0; color: white; background: #019be1; }
 .secondary-button { border: 1px solid #d8e1e9; color: #536577; background: white; }
-.loading { display: flex; min-height: 500px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #8494a3; }
+.loading { display: flex; min-height: 140px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #8494a3; }
 .statistics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 20px; }
-.stat-card { display: flex; align-items: center; gap: 15px; padding: 22px; border: 1px solid #e3eaf0; border-radius: 15px; background: white; }
+.stat-card { display: flex; align-items: center; gap: 15px; padding: 15px; border: 1px solid #e3eaf0; border-radius: 15px; background: white; }
 .stat-card span, .stat-card strong { display: block; }
 .stat-card span { margin-bottom: 6px; color: #667a8e; font-size: 12px; }
 .stat-card strong { color: #122b43; font-size: 24px; }
@@ -185,13 +197,85 @@ onMounted(cargarReporte)
 .blue { color: #019be1; background: #e2f4fc; }.orange { color: #ef8c00; background: #fff0d8; }.purple { color: #7451c9; background: #eee8ff; }.green { color: #0d9a69; background: #e0f5ed; }
 .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 .chart-card, .table-card { border: 1px solid #e3eaf0; border-radius: 15px; background: white; }
-.chart-card { min-height: 290px; padding: 22px; }
+.chart-card { min-height: 160px; padding: 22px; }
 .chart-card h3, .table-header h3 { margin: 0 0 22px; font-size: 16px; }
 .bar-row { margin-bottom: 18px; }.bar-label { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 12px; }.bar-track { overflow: hidden; height: 8px; border-radius: 20px; background: #edf2f6; }.bar-fill { height: 100%; border-radius: 20px; }.priority { background: linear-gradient(90deg,#019be1,#0075b5); }.category { background: linear-gradient(90deg,#7451c9,#9d7bea); }
-.empty-small { display: grid; min-height: 190px; color: #8494a3; place-items: center; font-size: 13px; }
-.table-card { overflow: hidden; min-height: 330px; }.table-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid #edf1f4; }.table-header h3 { margin: 0; }.table-header span { color: #718295; font-size: 12px; }
+.empty-small { display: grid; min-height: 110px; color: #8494a3; place-items: center; font-size: 13px; }
+.table-card { overflow: hidden; min-height: 0; }.table-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid #edf1f4; }.table-header h3 { margin: 0; }.table-header span { color: #718295; font-size: 12px; }
 .table-container { overflow-x: auto; } table { width: 100%; border-collapse: collapse; } th, td { padding: 14px 17px; border-bottom: 1px solid #edf1f4; font-size: 12px; text-align: left; white-space: nowrap; } th { color: #6b7e90; background: #f8fafc; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; }
-.empty-state { display: flex; min-height: 250px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #8494a3; }.empty-state i { color: #b8c5cf; font-size: 40px; }
+.empty-state { display: flex; min-height: 120px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #8494a3; }.empty-state i { color: #b8c5cf; font-size: 40px; }
 @media (max-width: 1050px) { .statistics { grid-template-columns: 1fr 1fr; }.filters-card { align-items: stretch; flex-wrap: wrap; }.filter-group { min-width: 210px; } }
 @media (max-width: 760px) { .app-layout { grid-template-columns: 1fr; }.sidebar { position: static; height: auto; }.menu, .logout-button { display: none; }.content { padding: 22px 16px; }.user strong { display: none; }.statistics, .report-grid { grid-template-columns: 1fr; }.filters-card { flex-direction: column; }.filter-group, .primary-button, .secondary-button { width: 100%; } }
+.sidebar {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  padding-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.sidebar .menu {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0;
+}
+
+.sidebar .menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.sidebar .menu-item.active {
+  border-left: 4px solid #ffffff;
+  padding-left: 11px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+}
+
+.sidebar .logout-button {
+  flex-shrink: 0;
+  margin-top: 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  font-weight: 600;
+}
+
+.sidebar .logout-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    min-height: auto;
+    height: auto;
+  }
+
+  .sidebar .menu {
+    flex: initial;
+    gap: 8px;
+  }
+}
 </style>

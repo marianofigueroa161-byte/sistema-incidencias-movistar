@@ -6,7 +6,6 @@ const router = useRouter()
 const authStore = useAuthStore()
 const usuario = ref('')
 const clave = ref('')
-const recordar = ref(false)
 const mostrarClave = ref(false)
 const mensaje = ref('')
 const iniciarSesion = async () => {
@@ -19,7 +18,7 @@ const iniciarSesion = async () => {
     await authStore.iniciarSesion(
       usuario.value,
       clave.value,
-      recordar.value
+      false
     )
     await router.push('/dashboard')
   } catch (error) {
@@ -38,23 +37,6 @@ const iniciarSesion = async () => {
           <strong>Movistar</strong>
         </div>
       </div>
-      <div class="information-content">
-        <span class="tag">Soporte de internet fijo</span>
-        <ul>
-          <li>
-            <i class="bi bi-ticket-perforated"></i>
-            Generación automática de tickets
-          </li>
-          <li>
-            <i class="bi bi-clock-history"></i>
-            Seguimiento actualizado de la atención
-          </li>
-          <li>
-            <i class="bi bi-shield-check"></i>
-            Acceso seguro según el tipo de usuario
-          </li>
-        </ul>
-      </div>
     </section>
     <section class="form-panel">
       <div class="login-card">
@@ -63,7 +45,6 @@ const iniciarSesion = async () => {
           <strong>Movistar</strong>
         </div>
         <div class="form-header">
-          <span>BIENVENIDO</span>
           <h2>Iniciar sesión</h2>
         </div>
         <form @submit.prevent="iniciarSesion">
@@ -116,19 +97,7 @@ const iniciarSesion = async () => {
               </button>
             </div>
           </div>
-          <div class="form-options">
-            <label class="remember">
-              <input
-                v-model="recordar"
-                type="checkbox"
-                :disabled="authStore.cargando"
-              />
-              Recordarme
-            </label>
-            <a href="#" @click.prevent>
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
+
           <p v-if="mensaje" class="message">
             <i class="bi bi-info-circle"></i>
             {{ mensaje }}
@@ -229,7 +198,7 @@ const iniciarSesion = async () => {
   z-index: 1;
   max-width: 560px;
   margin: auto 0;
-  transform: translateY(-25px);
+  transform: none;
 }
 .tag {
   display: inline-block;
@@ -269,7 +238,7 @@ const iniciarSesion = async () => {
 }
 .login-card {
   width: min(100%, 460px);
-  padding: 44px;
+  padding: 30px;
   border: 1px solid #e5ebf1;
   border-radius: 24px;
   background: white;
@@ -278,18 +247,13 @@ const iniciarSesion = async () => {
 .mobile-brand {
   display: none;
 }
-.form-header span {
-  color: #019be1;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.8px;
-}
 .form-header h2 {
-  margin: 9px 0 30px;
+  text-align: center;
+  margin: 0 0 22px;
   font-size: 32px;
 }
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .form-group label {
   display: block;
@@ -343,27 +307,7 @@ const iniciarSesion = async () => {
   cursor: not-allowed;
   opacity: 0.6;
 }
-.form-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 4px 0 24px;
-  font-size: 13px;
-}
-.remember {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #536577;
-}
-.form-options a {
-  color: #0079bd;
-  font-weight: 700;
-  text-decoration: none;
-}
-.form-options a:hover {
-  text-decoration: underline;
-}
+
 .message {
   display: flex;
   align-items: center;
@@ -396,7 +340,7 @@ const iniciarSesion = async () => {
 }
 .login-button:hover:not(:disabled) {
   filter: brightness(1.05);
-  transform: translateY(-1px);
+  transform: none;
 }
 .login-button:disabled {
   cursor: not-allowed;
@@ -412,23 +356,32 @@ const iniciarSesion = async () => {
 }
 .help {
   display: flex;
-  gap: 12px;
-  margin-top: 30px;
-  padding-top: 22px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid #edf1f4;
   color: #607285;
 }
 .help > i {
   color: #019be1;
   font-size: 23px;
+  flex-shrink: 0;
+}
+.help > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }
 .help strong,
 .help span {
-  display: block;
+  display: inline;
   font-size: 12px;
 }
 .help strong {
-  margin-bottom: 4px;
+  margin-bottom: 0;
   color: #35495c;
 }
 @media (max-width: 900px) {
