@@ -81,19 +81,15 @@ onMounted(cargarTecnicos)
         <button class="menu-item" type="button" @click="router.push('/usuarios')"><i class="bi bi-people"></i>Usuarios</button>
         <button class="menu-item active" type="button"><i class="bi bi-person-gear"></i>Técnicos</button>
         <button class="menu-item" type="button" @click="router.push('/reportes')"><i class="bi bi-bar-chart"></i>Reportes</button>
-        <button class="menu-item" type="button"><i class="bi bi-gear"></i>Configuración</button>
       </nav>
       <button class="logout-button" type="button" @click="cerrarSesion"><i class="bi bi-box-arrow-left"></i>Cerrar sesión</button>
     </aside>
     <main class="content">
-      <header class="topbar">
-        <div></div>
-        <div class="user"><strong>{{ authStore.usuario?.nombres }} {{ authStore.usuario?.apellidos }}</strong><div class="avatar">{{ authStore.usuario?.nombres?.charAt(0) }}</div></div>
-      </header>
+
       <div v-if="mensaje" :class="['alerta', tipoMensaje]"><i :class="tipoMensaje === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-circle'"></i>{{ mensaje }}</div>
       <section class="panel">
         <div class="panel-header">
-          <div class="search"><i class="bi bi-search"></i><input v-model="busqueda" type="search" placeholder="Buscar por nombre, documento o correo" /></div>
+          <div class="search"><i class="bi bi-search"></i><input v-model="busqueda" type="search" placeholder="" /></div>
           <button class="primary-button" type="button" @click="abrirFormulario"><i class="bi bi-person-plus"></i>Registrar técnico</button>
         </div>
         <div v-if="cargando" class="loading"><span class="spinner-border"></span>Cargando técnicos...</div>
@@ -148,7 +144,7 @@ onMounted(cargarTecnicos)
 .menu-item, .logout-button { display: flex; width: 100%; align-items: center; gap: 13px; padding: 13px 15px; border: 0; border-radius: 10px; color: rgba(255,255,255,.82); background: transparent; font-size: 14px; text-align: left; cursor: pointer; }
 .menu-item:hover, .menu-item.active, .logout-button:hover { color: white; background: rgba(255,255,255,.14); }
 .logout-button { margin-top: auto; }
-.content { min-width: 0; padding: 30px 36px; }
+.content { min-width: 0; padding: 20px 24px; }
 .topbar, .user, .panel-header { display: flex; align-items: center; }
 .topbar, .panel-header { justify-content: space-between; }
 .topbar { margin-bottom: 26px; }
@@ -157,7 +153,7 @@ onMounted(cargarTecnicos)
 .alerta { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 13px 16px; border-radius: 10px; font-size: 13px; }
 .alerta.success { color: #136b49; background: #e4f7ee; }
 .alerta.error { color: #9d3737; background: #fdeaea; }
-.panel { overflow: hidden; min-height: 620px; border: 1px solid #e4ebf1; border-radius: 17px; background: white; }
+.panel { overflow: hidden; min-height: 0; border: 1px solid #e4ebf1; border-radius: 17px; background: white; }
 .panel-header { gap: 18px; padding: 22px; border-bottom: 1px solid #edf1f4; }
 .search { position: relative; width: min(100%, 430px); }
 .search i { position: absolute; top: 50%; left: 14px; color: #8494a3; transform: translateY(-50%); }
@@ -165,7 +161,7 @@ onMounted(cargarTecnicos)
 .primary-button, .secondary-button { min-height: 43px; padding: 0 17px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .primary-button { border: 0; color: white; background: #019be1; }
 .secondary-button { border: 1px solid #d8e1e9; color: #536577; background: white; }
-.loading, .empty-state { display: flex; min-height: 500px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #8494a3; }
+.loading, .empty-state { display: flex; min-height: 140px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #8494a3; }
 .empty-state i { font-size: 44px; }
 .table-container { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
@@ -188,4 +184,76 @@ th { color: #6b7e90; background: #f8fafc; font-size: 11px; text-transform: upper
 .form-group input:focus, .form-group select:focus, .search input:focus { border-color: #019be1; box-shadow: 0 0 0 3px rgba(1,155,225,.1); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 11px; padding-top: 10px; }
 @media (max-width: 760px) { .app-layout { grid-template-columns: 1fr; } .sidebar { height: auto; } .menu, .logout-button { display: none; } .content { padding: 22px 16px; } .panel-header, .form-row, .document-row { grid-template-columns: 1fr; align-items: stretch; } .panel-header { flex-direction: column; } .search { width: 100%; } }
+.sidebar {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  padding-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.sidebar .menu {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0;
+}
+
+.sidebar .menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.sidebar .menu-item.active {
+  border-left: 4px solid #ffffff;
+  padding-left: 11px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+}
+
+.sidebar .logout-button {
+  flex-shrink: 0;
+  margin-top: 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  font-weight: 600;
+}
+
+.sidebar .logout-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    min-height: auto;
+    height: auto;
+  }
+
+  .sidebar .menu {
+    flex: initial;
+    gap: 8px;
+  }
+}
 </style>f

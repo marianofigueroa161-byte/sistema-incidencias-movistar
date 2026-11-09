@@ -150,10 +150,6 @@ onMounted(cargarClientes)
           <i class="bi bi-bar-chart"></i>
           Reportes
         </button>
-        <button class="menu-item">
-          <i class="bi bi-gear"></i>
-          Configuración
-        </button>
       </nav>
       <button
         class="logout-button"
@@ -164,18 +160,7 @@ onMounted(cargarClientes)
       </button>
     </aside>
     <main class="content">
-      <header class="topbar">
-        <div></div>
-        <div class="user">
-          <strong>
-            {{ authStore.usuario?.nombres }}
-            {{ authStore.usuario?.apellidos }}
-          </strong>
-          <div class="avatar">
-            {{ authStore.usuario?.nombres?.charAt(0) }}
-          </div>
-        </div>
-      </header>
+
       <div
         v-if="mensaje"
         :class="['alerta', tipoMensaje]"
@@ -196,7 +181,7 @@ onMounted(cargarClientes)
             <input
               v-model="busqueda"
               type="search"
-              placeholder="Buscar por nombre, documento o servicio"
+              placeholder=""
             />
           </div>
           <button
@@ -537,7 +522,7 @@ onMounted(cargarClientes)
 }
 .content {
   min-width: 0;
-  padding: 30px 36px;
+  padding: 20px 24px;
 }
 .topbar,
 .user,
@@ -589,7 +574,7 @@ onMounted(cargarClientes)
 }
 .panel {
   overflow: hidden;
-  min-height: 620px;
+  min-height: 0;
   border: 1px solid #e4ebf1;
   border-radius: 17px;
   background: white;
@@ -644,7 +629,7 @@ onMounted(cargarClientes)
 .loading,
 .empty-state {
   display: flex;
-  min-height: 500px;
+  min-height: 140px;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -798,6 +783,78 @@ th {
   }
   .search {
     width: 100%;
+  }
+}
+.sidebar {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  padding-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.sidebar .menu {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0;
+}
+
+.sidebar .menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.sidebar .menu-item.active {
+  border-left: 4px solid #ffffff;
+  padding-left: 11px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+}
+
+.sidebar .logout-button {
+  flex-shrink: 0;
+  margin-top: 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  font-weight: 600;
+}
+
+.sidebar .logout-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    min-height: auto;
+    height: auto;
+  }
+
+  .sidebar .menu {
+    flex: initial;
+    gap: 8px;
   }
 }
 </style>
