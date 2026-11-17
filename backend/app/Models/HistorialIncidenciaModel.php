@@ -38,6 +38,7 @@ class HistorialIncidenciaModel extends Model
                 'historial_incidencias.created_at',
                 'ASC'
             )
+            ->orderBy('historial_incidencias.id', 'ASC')
             ->findAll();
     }
 }

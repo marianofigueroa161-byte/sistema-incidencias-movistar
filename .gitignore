@@ -1,4 +1,4 @@
-﻿# Configuración privada
+# Configuración privada
 .env
 *.env
 backend/.env
@@ -25,3 +25,11 @@ Thumbs.db
 # Copias y carpetas antiguas de la raíz
 /movistar-incidencias/
 /src/
+
+*.bak
+*.bak-*
+*.backup
+*.tmp
+*.old
+*.sql
+*.env.*

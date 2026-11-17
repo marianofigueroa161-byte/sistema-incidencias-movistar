@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -28,6 +28,18 @@ const formulario = reactive({
   prioridad: 'MEDIA',
 })
 const gestion = reactive({ tecnico_id: '', estado: '', diagnostico: '', solucion: '', comentario: '' })
+const esGestor = computed(() => ['ADMINISTRADOR', 'SUPERVISOR'].includes(authStore.rol))
+const esTecnico = computed(() => authStore.rol === 'TECNICO')
+const puedeRegistrar = computed(() => esGestor.value || authStore.rol === 'CLIENTE')
+const puedeAsignar = computed(() => esGestor.value && ['REGISTRADO', 'ASIGNADO', 'EN_PROCESO'].includes(incidenciaSeleccionada.value?.estado))
+const estadosPermitidos = computed(() => {
+  const estado = incidenciaSeleccionada.value?.estado
+  if (esTecnico.value) return ({ ASIGNADO: ['EN_PROCESO'], EN_PROCESO: ['EN_PROCESO', 'SOLUCIONADO'] })[estado] ?? []
+  if (esGestor.value) return ({ REGISTRADO: ['CANCELADO'], ASIGNADO: ['CANCELADO'], EN_PROCESO: ['CANCELADO'], SOLUCIONADO: ['CERRADO'] })[estado] ?? []
+  return []
+})
+const puedeActualizar = computed(() => estadosPermitidos.value.length > 0)
+const puedeEditarDiagnostico = computed(() => esTecnico.value && puedeActualizar.value)
 const incidenciasFiltradas = computed(() => {
   const texto = busqueda.value.toLowerCase().trim()
   return incidencias.value.filter((incidencia) => {
@@ -50,9 +62,23 @@ const incidenciasFiltradas = computed(() => {
     )
   })
 })
-const cargarDatos = async () => {
-  cargando.value = true
-  mensaje.value = ''
+let consultaActiva = null
+let intervaloActualizacion = null
+let componenteActivo = true
+
+const cargarDatos = async (silencioso = false) => {
+  if (!componenteActivo) return
+  if (consultaActiva) {
+    if (silencioso) return
+    await consultaActiva
+    if (!componenteActivo) return
+    return cargarDatos(silencioso)
+  }
+  if (!silencioso) cargando.value = true
+  let finalizarConsulta
+  consultaActiva = new Promise((resolve) => {
+    finalizarConsulta = resolve
+  })
   try {
     const [
       respuestaIncidencias,
@@ -63,7 +89,7 @@ const cargarDatos = async () => {
       api.get('/incidencias'),
       api.get('/categorias-incidencia'),
       api.get('/servicios'),
-      api.get('/tecnicos'),
+      esGestor.value ? api.get('/tecnicos') : Promise.resolve({ data: { tecnicos: [] } }),
     ])
     incidencias.value =
       respuestaIncidencias.data.incidencias
@@ -78,12 +104,15 @@ const cargarDatos = async () => {
       router.push('/login')
       return
     }
+    if (silencioso) return
     tipoMensaje.value = 'error'
     mensaje.value =
       error.response?.data?.message ||
       'No fue posible cargar las incidencias.'
   } finally {
     cargando.value = false
+    consultaActiva = null
+    finalizarConsulta()
   }
 }
 const cambiarCategoria = () => {
@@ -105,6 +134,7 @@ const limpiarFormulario = () => {
   formulario.prioridad = 'MEDIA'
 }
 const abrirFormulario = () => {
+  if (!puedeRegistrar.value || guardando.value) return
   mensaje.value = ''
   limpiarFormulario()
   mostrarFormulario.value = true
@@ -115,6 +145,7 @@ const cerrarFormulario = () => {
   }
 }
 const registrarIncidencia = async () => {
+  if (!puedeRegistrar.value || guardando.value) return
   mensaje.value = ''
   guardando.value = true
   try {
@@ -141,7 +172,7 @@ const abrirGestion = async (incidencia) => {
   mensaje.value = ''
   incidenciaSeleccionada.value = incidencia
   gestion.tecnico_id = incidencia.tecnico_id || ''
-  gestion.estado = incidencia.estado
+  gestion.estado = estadosPermitidos.value.includes(incidencia.estado) ? incidencia.estado : ''
   gestion.diagnostico = incidencia.diagnostico || ''
   gestion.solucion = incidencia.solucion || ''
   gestion.comentario = ''
@@ -155,10 +186,75 @@ const abrirGestion = async (incidencia) => {
     mensaje.value = error.response?.data?.message || 'No se pudo cargar el historial.'
   }
 }
+let consultaHistorial = false
+
+const sincronizarHistorial = async () => {
+  if (
+    consultaHistorial ||
+    !mostrarGestion.value ||
+    !incidenciaSeleccionada.value ||
+    guardando.value ||
+    authStore.rol !== 'CLIENTE'
+  ) return
+
+  const id = incidenciaSeleccionada.value.id
+  consultaHistorial = true
+
+  try {
+    const [respuestaIncidencias, respuestaHistorial] = await Promise.all([
+      api.get('/incidencias'),
+      api.get(`/incidencias/${id}/historial`)
+    ])
+
+    if (
+      !componenteActivo ||
+      !mostrarGestion.value ||
+      incidenciaSeleccionada.value?.id !== id
+    ) return
+
+    const lista = respuestaIncidencias.data.incidencias || []
+    const actual = lista.find((item) => Number(item.id) === Number(id))
+
+    incidencias.value = lista
+
+    if (!actual) {
+      mostrarGestion.value = false
+      incidenciaSeleccionada.value = null
+      historial.value = []
+      return
+    }
+
+    incidenciaSeleccionada.value = actual
+    gestion.estado = actual.estado
+    gestion.tecnico_id = actual.tecnico_id || ''
+    gestion.diagnostico = actual.diagnostico || ''
+    gestion.solucion = actual.solucion || ''
+    historial.value = respuestaHistorial.data.historial || []
+  } catch (error) {
+    if (error.response?.status === 401) {
+      await authStore.cerrarSesion()
+      router.push('/login')
+    }
+  } finally {
+    consultaHistorial = false
+  }
+}
+
 const cerrarGestion = () => {
   if (!guardando.value) mostrarGestion.value = false
 }
 const asignarTecnico = async () => {
+  if (!puedeAsignar.value || guardando.value) return
+  if (Number(gestion.tecnico_id) === Number(incidenciaSeleccionada.value?.tecnico_id)) {
+    tipoMensaje.value = 'error'
+    mensaje.value = 'Seleccione un técnico diferente.'
+    return
+  }
+  if (incidenciaSeleccionada.value?.tecnico_id && !gestion.comentario.trim()) {
+    tipoMensaje.value = 'error'
+    mensaje.value = 'Ingrese el motivo de la reasignación.'
+    return
+  }
   if (!gestion.tecnico_id) {
     tipoMensaje.value = 'error'
     mensaje.value = 'Seleccione un técnico.'
@@ -183,13 +279,19 @@ const asignarTecnico = async () => {
   }
 }
 const actualizarEstado = async () => {
+  if (guardando.value || !estadosPermitidos.value.includes(gestion.estado)) return
+  if (gestion.estado === 'SOLUCIONADO' && (!gestion.diagnostico.trim() || !gestion.solucion.trim())) {
+    tipoMensaje.value = 'error'
+    mensaje.value = 'Ingrese el diagnóstico y la solución.'
+    return
+  }
   guardando.value = true
   mensaje.value = ''
   try {
     const respuesta = await api.put(`/incidencias/${incidenciaSeleccionada.value.id}/estado`, {
       estado: gestion.estado,
-      diagnostico: gestion.diagnostico,
-      solucion: gestion.solucion,
+      diagnostico: esTecnico.value ? gestion.diagnostico : '',
+      solucion: esTecnico.value ? gestion.solucion : '',
       comentario: gestion.comentario,
     })
     tipoMensaje.value = 'success'
@@ -222,7 +324,24 @@ const cerrarSesion = async () => {
   await authStore.cerrarSesion()
   router.push('/login')
 }
-onMounted(cargarDatos)
+onMounted(() => {
+  cargarDatos()
+  intervaloActualizacion = window.setInterval(() => {
+    if (document.hidden || guardando.value) return
+    if (mostrarGestion.value) {
+      sincronizarHistorial()
+      return
+    }
+    if (!mostrarFormulario.value && !consultaHistorial) {
+      cargarDatos(true)
+    }
+  }, 5000)
+})
+
+onUnmounted(() => {
+  componenteActivo = false
+  window.clearInterval(intervaloActualizacion)
+})
 </script>
 <template>
   <div class="app-layout" translate="no">
@@ -297,6 +416,7 @@ onMounted(cargarDatos)
               <option value="EN_PROCESO">En proceso</option>
               <option value="SOLUCIONADO">Solucionado</option>
               <option value="CERRADO">Cerrado</option>
+              <option value="CANCELADO">Cancelado</option>
             </select>
             <select v-model="filtroPrioridad">
               <option value="" hidden></option>
@@ -308,7 +428,7 @@ onMounted(cargarDatos)
           </div>
           <button
             class="primary-button"
-            @click="abrirFormulario"
+            v-if="puedeRegistrar" @click="abrirFormulario"
           >
             <i class="bi bi-plus-lg"></i>
             Nueva incidencia
@@ -525,7 +645,7 @@ onMounted(cargarDatos)
       <section class="modal-card">
         <header class="modal-header">
           <div>
-            <h2>Gestionar incidencia</h2>
+            <h2>{{ puedeAsignar || puedeActualizar ? 'Gestionar incidencia' : 'Detalle de incidencia' }}</h2>
             <p>{{ incidenciaSeleccionada?.codigo }} - {{ incidenciaSeleccionada?.asunto }}</p>
           </div>
           <button type="button" :disabled="guardando" @click="cerrarGestion"><i class="bi bi-x-lg"></i></button>
@@ -534,45 +654,44 @@ onMounted(cargarDatos)
           <div class="form-row">
             <div class="form-group">
               <label for="tecnico">Técnico</label>
-              <select id="tecnico" v-model="gestion.tecnico_id">
+              <select v-if="puedeAsignar" id="tecnico" v-model="gestion.tecnico_id">
                 <option value="" disabled>Seleccione un técnico</option>
                 <option v-for="tecnico in tecnicos" :key="tecnico.id" :value="tecnico.id">{{ tecnico.nombres }} {{ tecnico.apellidos }}</option>
               </select>
+              <span v-else>{{ incidenciaSeleccionada?.tecnico_nombres ? `${incidenciaSeleccionada.tecnico_nombres} ${incidenciaSeleccionada.tecnico_apellidos}` : 'Sin asignar' }}</span>
             </div>
             <div class="form-group">
               <label for="estadoGestion">Estado</label>
-              <select id="estadoGestion" v-model="gestion.estado">
-                <option value="REGISTRADO">Registrado</option>
-                <option value="ASIGNADO">Asignado</option>
-                <option value="EN_PROCESO">En proceso</option>
-                <option value="SOLUCIONADO">Solucionado</option>
-                <option value="CERRADO">Cerrado</option>
+              <span>{{ incidenciaSeleccionada?.estado?.replaceAll('_', ' ') }}</span>
+              <select v-if="puedeActualizar" id="estadoGestion" v-model="gestion.estado">
+                <option value="" disabled>Seleccione un estado</option>
+                <option v-for="estado in estadosPermitidos" :key="estado" :value="estado">{{ estado.replaceAll('_', ' ') }}</option>
               </select>
             </div>
           </div>
           <div class="form-group full">
             <label for="diagnostico">Diagnóstico</label>
-            <textarea id="diagnostico" v-model.trim="gestion.diagnostico" rows="3" placeholder="Ingrese el diagnóstico técnico"></textarea>
+            <textarea id="diagnostico" :readonly="!puedeEditarDiagnostico" v-model.trim="gestion.diagnostico" rows="3" placeholder="Ingrese el diagnóstico técnico"></textarea>
           </div>
           <div class="form-group full">
             <label for="solucion">Solución</label>
-            <textarea id="solucion" v-model.trim="gestion.solucion" rows="3" placeholder="Ingrese la solución aplicada"></textarea>
+            <textarea id="solucion" :readonly="!puedeEditarDiagnostico" v-model.trim="gestion.solucion" rows="3" placeholder="Ingrese la solución aplicada"></textarea>
           </div>
           <div class="form-group full">
             <label for="comentario">Comentario</label>
-            <textarea id="comentario" v-model.trim="gestion.comentario" rows="2" placeholder="Detalle adicional del cambio"></textarea>
+            <textarea id="comentario" :readonly="!puedeAsignar && !puedeActualizar" v-model.trim="gestion.comentario" rows="2" placeholder="Detalle adicional del cambio"></textarea>
           </div>
           <div class="history" v-if="historial.length">
             <strong>Historial</strong>
             <div v-for="item in historial" :key="item.id" class="history-item">
               <span>{{ item.estado_nuevo.replace('_', ' ') }}</span>
-              <small>{{ item.comentario }} · {{ formatearFecha(item.created_at) }}</small>
+              <small>{{ item.nombres }} {{ item.apellidos }} · {{ item.comentario }} · {{ formatearFecha(item.created_at) }}</small>
             </div>
           </div>
           <footer class="modal-actions">
             <button class="secondary-button" type="button" :disabled="guardando" @click="cerrarGestion">Cancelar</button>
-            <button class="secondary-button" type="button" :disabled="guardando || !gestion.tecnico_id" @click="asignarTecnico">Asignar técnico</button>
-            <button class="primary-button" type="submit" :disabled="guardando">{{ guardando ? 'Guardando...' : 'Actualizar estado' }}</button>
+            <button class="secondary-button" type="button" v-if="puedeAsignar" :disabled="guardando || !gestion.tecnico_id" @click="asignarTecnico">Asignar técnico</button>
+            <button class="primary-button" v-if="puedeActualizar" type="submit" :disabled="guardando || !estadosPermitidos.includes(gestion.estado)">{{ guardando ? 'Guardando...' : 'Actualizar estado' }}</button>
           </footer>
         </form>
       </section>

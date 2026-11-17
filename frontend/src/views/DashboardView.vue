@@ -10,9 +10,15 @@ const incidencias = ref([])
 const cargando = ref(true)
 const mensaje = ref('')
 const incidenciasRecientes = computed(() => incidencias.value.slice(0, 5))
-const cargarDashboard = async () => {
-  cargando.value = true
-  mensaje.value = ''
+let consultando = false
+const cargarDashboard = async (silencioso = false) => {
+  if (consultando) return
+  consultando = true
+
+  if (!silencioso || cargando.value) {
+    cargando.value = true
+    mensaje.value = ''
+  }
   try {
     const [respuestaResumen, respuestaIncidencias] = await Promise.all([api.get('/incidencias/resumen'), api.get('/incidencias')])
     resumen.value = respuestaResumen.data.resumen || resumen.value
@@ -23,8 +29,9 @@ const cargarDashboard = async () => {
       router.push('/login')
       return
     }
-    mensaje.value = error.response?.data?.message || 'No fue posible cargar el panel principal.'
+    if (!silencioso) mensaje.value = error.response?.data?.message || 'No fue posible cargar el panel principal.'
   } finally {
+    consultando = false
     cargando.value = false
   }
 }
@@ -39,10 +46,10 @@ let intervaloActualizacion = null
 onMounted(() => {
   cargarDashboard()
   intervaloActualizacion = setInterval(() => {
-    if (!document.hidden && !cargando.value) {
-      cargarDashboard()
+    if (!document.hidden && !consultando) {
+      cargarDashboard(true)
     }
-  }, 10000)
+  }, 5000)
 })
 
 onUnmounted(() => {

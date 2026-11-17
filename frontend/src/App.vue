@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import Notificaciones from './components/Notificaciones.vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 
@@ -14,6 +15,7 @@ const enlaces = [
   { nombre: 'tecnicos', ruta: '/tecnicos', texto: 'Técnicos', icono: 'bi-person-gear' },
   { nombre: 'reportes', ruta: '/reportes', texto: 'Reportes', icono: 'bi-bar-chart' },
 ]
+const enlacesPermitidos = computed(() => enlaces.filter(enlace => ['dashboard', 'incidencias'].includes(enlace.nombre) || ['ADMINISTRADOR', 'SUPERVISOR'].includes(authStore.rol)))
 const cerrandoSesion = computed(() => authStore.cargando)
 const cerrarSesion = async () => {
   await authStore.cerrarSesion()
@@ -23,14 +25,14 @@ const cerrarSesion = async () => {
 
 <template>
   <div v-if="mostrarMenu" class="movistar-shell">
-    <aside class="movistar-sidebar">
+    <aside class="movistar-sidebar" :class="{ 'movistar-sidebar-limitado': ['TECNICO', 'CLIENTE'].includes(authStore.rol) }">
       <div class="movistar-brand">
         <div class="movistar-brand-icon">M</div>
         <strong>Movistar</strong>
       </div>
       <nav class="movistar-menu" aria-label="Navegación principal">
         <button
-          v-for="enlace in enlaces"
+          v-for="enlace in enlacesPermitidos"
           :key="enlace.nombre"
           class="movistar-menu-item"
           :class="{ active: route.name === enlace.nombre }"
@@ -45,7 +47,27 @@ const cerrarSesion = async () => {
         <i class="bi bi-box-arrow-left"></i>Cerrar sesión
       </button>
     </aside>
-    <div class="movistar-view"><RouterView /></div>
+    <div class="movistar-view">
+      <header class="movistar-notificaciones-bar">
+        <Notificaciones />
+      </header>
+      <RouterView />
+    </div>
   </div>
   <RouterView v-else />
 </template>
+
+<style scoped>
+.movistar-notificaciones-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 24px 0;
+}
+
+@media (max-width: 760px) {
+  .movistar-notificaciones-bar {
+    padding: 12px 16px 0;
+  }
+}
+</style>

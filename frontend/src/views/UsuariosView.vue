@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -46,8 +46,23 @@ const clientesFiltrados = computed(() => {
     )
   })
 })
-const cargarClientes = async () => {
-  cargando.value = true
+let consultaActiva = null
+let intervaloActualizacion = null
+let componenteActivo = true
+
+const cargarClientes = async (silencioso = false) => {
+  if (!componenteActivo) return
+  if (consultaActiva) {
+    if (silencioso) return
+    await consultaActiva
+    if (!componenteActivo) return
+    return cargarClientes(silencioso)
+  }
+  if (!silencioso) cargando.value = true
+  let finalizarConsulta
+  consultaActiva = new Promise((resolve) => {
+    finalizarConsulta = resolve
+  })
   try {
     const respuesta = await api.get('/clientes')
     clientes.value = respuesta.data.clientes
@@ -57,12 +72,15 @@ const cargarClientes = async () => {
       router.push('/login')
       return
     }
+    if (silencioso) return
     tipoMensaje.value = 'error'
     mensaje.value =
       error.response?.data?.message ||
       'No se pudieron cargar los clientes.'
   } finally {
     cargando.value = false
+    consultaActiva = null
+    finalizarConsulta()
   }
 }
 const limpiarFormulario = () => {
@@ -80,6 +98,7 @@ const limpiarFormulario = () => {
   formulario.distrito = ''
 }
 const abrirFormulario = () => {
+  if (authStore.rol !== 'ADMINISTRADOR') return
   mensaje.value = ''
   limpiarFormulario()
   mostrarFormulario.value = true
@@ -90,6 +109,7 @@ const cerrarFormulario = () => {
   }
 }
 const registrarCliente = async () => {
+  if (authStore.rol !== 'ADMINISTRADOR') return
   guardando.value = true
   mensaje.value = ''
   try {
@@ -114,7 +134,19 @@ const cerrarSesion = async () => {
   await authStore.cerrarSesion()
   router.push('/login')
 }
-onMounted(cargarClientes)
+onMounted(() => {
+  cargarClientes()
+  intervaloActualizacion = window.setInterval(() => {
+    if (!document.hidden && !guardando.value) {
+      cargarClientes(true)
+    }
+  }, 5000)
+})
+
+onUnmounted(() => {
+  componenteActivo = false
+  window.clearInterval(intervaloActualizacion)
+})
 </script>
 <template>
   <div class="app-layout" translate="no">
@@ -186,7 +218,7 @@ onMounted(cargarClientes)
           </div>
           <button
             class="primary-button"
-            @click="abrirFormulario"
+            v-if="authStore.rol === 'ADMINISTRADOR'" @click="abrirFormulario"
           >
             <i class="bi bi-person-plus"></i>
             Registrar cliente

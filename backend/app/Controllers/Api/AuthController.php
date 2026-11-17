@@ -50,6 +50,9 @@ class AuthController extends BaseController
                     'message' => 'La cuenta está bloqueada temporalmente. Intente más tarde.',
                 ]);
         }
+        if ($usuario['estado'] === 'BLOQUEADO' && empty($usuario['bloqueado_hasta'])) {
+            return $this->response->setStatusCode(423)->setJSON(['success' => false, 'message' => 'La cuenta está bloqueada.']);
+        }
         if (!password_verify($clave, $usuario['password_hash'])) {
             $intentos = ((int) $usuario['intentos_fallidos']) + 1;
             $actualizacion = [
@@ -72,6 +75,7 @@ class AuthController extends BaseController
                         : 'Las credenciales ingresadas son incorrectas.',
                 ]);
         }
+        session()->regenerate(true);
         $usuarioModel->update($usuario['id'], [
             'estado'            => 'ACTIVO',
             'intentos_fallidos' => 0,

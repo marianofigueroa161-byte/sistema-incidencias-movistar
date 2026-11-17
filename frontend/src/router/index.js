@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import api from '../services/api'
+import { useAuthStore } from '../stores/auth'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import IncidenciasView from '../views/IncidenciasView.vue'
@@ -23,12 +24,15 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   try {
     const respuesta = await api.get('/sesion')
-    const rol = respuesta.data?.usuario?.rol
+    const authStore = useAuthStore()
+    authStore.usuario = respuesta.data?.usuario ?? null
+    const rol = authStore.rol
     if (to.meta.soloInvitados) return '/dashboard'
     if (['usuarios', 'tecnicos'].includes(to.name) && !['ADMINISTRADOR', 'SUPERVISOR'].includes(rol)) return '/incidencias'
     if (['reportes'].includes(to.name) && !['ADMINISTRADOR', 'SUPERVISOR'].includes(rol)) return '/incidencias'
     return true
   } catch {
+    useAuthStore().usuario = null
     if (to.meta.requiereAutenticacion) return '/login'
     return true
   }

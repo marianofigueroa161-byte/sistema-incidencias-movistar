@@ -35,7 +35,7 @@ const cerrarSesion = async () => {
       <button class="logout-button" type="button" @click="cerrarSesion"><i class="bi bi-box-arrow-left"></i>Cerrar sesión</button>
     </aside>
     <main class="content">
-      <header class="topbar"><div></div><div class="user"><strong>{{ authStore.usuario?.nombres }} {{ authStore.usuario?.apellidos }}</strong><div class="avatar">{{ authStore.usuario?.nombres?.charAt(0) }}</div></div></header>
+
       <div v-if="mensaje" class="alerta"><i class="bi bi-check-circle"></i>{{ mensaje }}</div>
       <section class="settings-grid">
         <article class="card">
@@ -67,4 +67,76 @@ const cerrarSesion = async () => {
 .setting-row,.select-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 16px 0; border-bottom: 1px solid #edf1f4; }.setting-row input { width: 18px; height: 18px; accent-color: #019be1; }.select-row { border-bottom: 0; }.select-row select { min-width: 135px; height: 39px; padding: 0 10px; border: 1px solid #d7e1e8; border-radius: 8px; color: #294258; background: white; }.actions { display: flex; justify-content: flex-end; margin-top: 20px; }.primary-button { display: inline-flex; min-height: 43px; align-items: center; gap: 8px; padding: 0 18px; border: 0; border-radius: 9px; color: white; background: #019be1; font-weight: 700; cursor: pointer; }
 @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; }.system-card { grid-column: auto; } }
 @media (max-width: 760px) { .app-layout { grid-template-columns: 1fr; }.sidebar { position: static; height: auto; }.menu,.logout-button { display: none; }.content { padding: 22px 16px; }.topbar h1 { font-size: 23px; }.user strong { display: none; } }
+.sidebar {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .brand {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  padding-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.sidebar .menu {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0;
+}
+
+.sidebar .menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.sidebar .menu-item.active {
+  border-left: 4px solid #ffffff;
+  padding-left: 11px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+}
+
+.sidebar .logout-button {
+  flex-shrink: 0;
+  margin-top: 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  font-weight: 600;
+}
+
+.sidebar .logout-button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    min-height: auto;
+    height: auto;
+  }
+
+  .sidebar .menu {
+    flex: initial;
+    gap: 8px;
+  }
+}
 </style>

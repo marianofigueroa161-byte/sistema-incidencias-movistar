@@ -123,3 +123,137 @@ html {
   .movistar-menu,
   .movistar-logout { display: none; }
 }
+
+
+@media (max-width: 1200px) {
+  .movistar-shell {
+    grid-template-columns: clamp(160px, 26vw, 250px) minmax(0, 1fr);
+  }
+
+  .movistar-view {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+    flex-direction: column;
+  }
+
+  .movistar-view .dashboard,
+  .movistar-view .app-layout {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  .movistar-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    min-height: 0;
+    padding: 24px 12px;
+    overflow-y: auto;
+  }
+
+  .movistar-menu {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 4px;
+  }
+
+  .movistar-logout {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .movistar-view .content,
+  .movistar-view .dashboard-grid,
+  .movistar-view .panel,
+  .movistar-view .table-container {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .movistar-view .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .movistar-view .statistics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .movistar-view .stat-card {
+    min-width: 0;
+  }
+
+  .movistar-view .stat-card > div {
+    min-width: 0;
+  }
+
+  .movistar-view .stat-card span {
+    overflow-wrap: anywhere;
+  }
+
+  .movistar-view .dashboard .content {
+    padding: 16px;
+  }
+
+  .movistar-view .dashboard .table-container {
+    overflow-x: auto;
+  }
+
+  .movistar-view .dashboard table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .movistar-view .dashboard th,
+  .movistar-view .dashboard td {
+    padding: 10px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 760px) {
+  .movistar-view .statistics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .movistar-brand {
+    gap: 8px;
+    padding: 0 0 20px;
+    margin-bottom: 12px;
+    font-size: 18px;
+  }
+
+  .movistar-menu-item,
+  .movistar-logout {
+    gap: 8px;
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  .movistar-view .dashboard table {
+    min-width: 480px;
+  }
+}
+
+
+.movistar-sidebar-limitado .movistar-menu {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.movistar-sidebar-limitado .movistar-menu-item {
+  flex-shrink: 0;
+}
+
+.movistar-sidebar-limitado .movistar-logout {
+  flex-shrink: 0;
+  margin-top: auto;
+}

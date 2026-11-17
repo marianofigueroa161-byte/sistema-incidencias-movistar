@@ -39,9 +39,15 @@ const categorias = computed(() => {
   return Object.entries(totales).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total)
 })
 const porcentaje = (total) => resumen.value.total ? Math.round((total / resumen.value.total) * 100) : 0
-const cargarReporte = async () => {
-  cargando.value = true
-  mensaje.value = ''
+let consultando = false
+const cargarReporte = async (silencioso = false) => {
+  if (consultando) return
+  consultando = true
+
+  if (!silencioso || cargando.value) {
+    cargando.value = true
+    mensaje.value = ''
+  }
   try {
     const respuesta = await api.get('/incidencias')
     incidencias.value = respuesta.data.incidencias || []
@@ -51,8 +57,9 @@ const cargarReporte = async () => {
       router.push('/login')
       return
     }
-    mensaje.value = error.response?.data?.message || 'No fue posible cargar el reporte.'
+    if (!silencioso) mensaje.value = error.response?.data?.message || 'No fue posible cargar el reporte.'
   } finally {
+    consultando = false
     cargando.value = false
   }
 }
@@ -101,10 +108,10 @@ onMounted(() => {
   cargarReporte()
 
   intervaloActualizacion = setInterval(() => {
-    if (!document.hidden && !cargando.value) {
-      cargarReporte()
+    if (!document.hidden && !consultando) {
+      cargarReporte(true)
     }
-  }, 10000)
+  }, 5000)
 })
 
 onUnmounted(() => {

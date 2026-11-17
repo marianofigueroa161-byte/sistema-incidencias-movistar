@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -21,8 +21,23 @@ const tecnicosFiltrados = computed(() => {
     return nombre.includes(texto) || tecnico.numero_documento?.toLowerCase().includes(texto) || tecnico.correo?.toLowerCase().includes(texto)
   })
 })
-const cargarTecnicos = async () => {
-  cargando.value = true
+let consultaActiva = null
+let intervaloActualizacion = null
+let componenteActivo = true
+
+const cargarTecnicos = async (silencioso = false) => {
+  if (!componenteActivo) return
+  if (consultaActiva) {
+    if (silencioso) return
+    await consultaActiva
+    if (!componenteActivo) return
+    return cargarTecnicos(silencioso)
+  }
+  if (!silencioso) cargando.value = true
+  let finalizarConsulta
+  consultaActiva = new Promise((resolve) => {
+    finalizarConsulta = resolve
+  })
   try {
     const respuesta = await api.get('/tecnicos')
     tecnicos.value = respuesta.data.tecnicos
@@ -32,16 +47,20 @@ const cargarTecnicos = async () => {
       router.push('/login')
       return
     }
+    if (silencioso) return
     tipoMensaje.value = 'error'
     mensaje.value = error.response?.data?.message || 'No se pudieron cargar los técnicos.'
   } finally {
     cargando.value = false
+    consultaActiva = null
+    finalizarConsulta()
   }
 }
 const limpiarFormulario = () => {
   Object.assign(formulario, { tipo_documento: 'DNI', numero_documento: '', nombres: '', apellidos: '', correo: '', telefono: '', clave: '' })
 }
 const abrirFormulario = () => {
+  if (authStore.rol !== 'ADMINISTRADOR') return
   mensaje.value = ''
   limpiarFormulario()
   mostrarFormulario.value = true
@@ -50,6 +69,7 @@ const cerrarFormulario = () => {
   if (!guardando.value) mostrarFormulario.value = false
 }
 const registrarTecnico = async () => {
+  if (authStore.rol !== 'ADMINISTRADOR') return
   guardando.value = true
   mensaje.value = ''
   try {
@@ -69,7 +89,19 @@ const cerrarSesion = async () => {
   await authStore.cerrarSesion()
   router.push('/login')
 }
-onMounted(cargarTecnicos)
+onMounted(() => {
+  cargarTecnicos()
+  intervaloActualizacion = window.setInterval(() => {
+    if (!document.hidden && !guardando.value) {
+      cargarTecnicos(true)
+    }
+  }, 5000)
+})
+
+onUnmounted(() => {
+  componenteActivo = false
+  window.clearInterval(intervaloActualizacion)
+})
 </script>
 <template>
   <div class="app-layout" translate="no">
@@ -90,7 +122,7 @@ onMounted(cargarTecnicos)
       <section class="panel">
         <div class="panel-header">
           <div class="search"><i class="bi bi-search"></i><input v-model="busqueda" type="search" placeholder="" /></div>
-          <button class="primary-button" type="button" @click="abrirFormulario"><i class="bi bi-person-plus"></i>Registrar técnico</button>
+          <button class="primary-button" type="button" v-if="authStore.rol === 'ADMINISTRADOR'" @click="abrirFormulario"><i class="bi bi-person-plus"></i>Registrar técnico</button>
         </div>
         <div v-if="cargando" class="loading"><span class="spinner-border"></span>Cargando técnicos...</div>
         <div v-else-if="tecnicosFiltrados.length === 0" class="empty-state"><i class="bi bi-person-gear"></i><strong>No existen técnicos registrados</strong></div>
