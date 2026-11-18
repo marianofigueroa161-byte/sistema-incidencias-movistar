@@ -8,23 +8,28 @@ const usuario = ref('')
 const clave = ref('')
 const mostrarClave = ref(false)
 const mensaje = ref('')
+const ingresando = ref(false)
 const iniciarSesion = async () => {
+  if (ingresando.value || authStore.cargando) return
   mensaje.value = ''
   if (!usuario.value || !clave.value) {
     mensaje.value = 'Ingrese su usuario y contraseña.'
     return
   }
+  ingresando.value = true
   try {
     await authStore.iniciarSesion(
       usuario.value,
       clave.value,
       false
     )
-    await router.push('/dashboard')
+    await router.replace('/dashboard')
   } catch (error) {
     mensaje.value =
       error.response?.data?.message ||
       'No fue posible conectar con el servidor.'
+  } finally {
+    ingresando.value = false
   }
 }
 </script>
@@ -60,7 +65,7 @@ const iniciarSesion = async () => {
                 type="text"
                 placeholder="Ingrese su usuario"
                 autocomplete="username"
-                :disabled="authStore.cargando"
+                :disabled="ingresando || authStore.cargando"
               />
             </div>
           </div>
@@ -74,7 +79,7 @@ const iniciarSesion = async () => {
                 :type="mostrarClave ? 'text' : 'password'"
                 placeholder="Ingrese su contraseña"
                 autocomplete="current-password"
-                :disabled="authStore.cargando"
+                :disabled="ingresando || authStore.cargando"
               />
               <button
                 class="show-password"
@@ -84,7 +89,7 @@ const iniciarSesion = async () => {
                     ? 'Ocultar contraseña'
                     : 'Mostrar contraseña'
                 "
-                :disabled="authStore.cargando"
+                :disabled="ingresando || authStore.cargando"
                 @click="mostrarClave = !mostrarClave"
               >
                 <i
@@ -105,10 +110,10 @@ const iniciarSesion = async () => {
           <button
             class="login-button"
             type="submit"
-            :disabled="authStore.cargando"
+            :disabled="ingresando || authStore.cargando"
           >
             <span
-              v-if="authStore.cargando"
+              v-if="ingresando || authStore.cargando"
               class="button-content"
             >
               <span
@@ -415,4 +420,29 @@ const iniciarSesion = async () => {
     gap: 12px;
   }
 }
+</style>
+<style scoped>
+.login-page .information-panel {
+  background: linear-gradient(180deg, #06376d, #0755a0 65%, #032042); background-image: url('/login-red.webp'); background-position: center bottom; background-size: 100% 100%; background-repeat: no-repeat;
+}
+.login-page .information-panel::after {
+  content: none;
+}
+.login-page .information-panel .brand {
+  position: relative;
+  z-index: 1;
+}
+.login-page .form-panel {
+  background-color: #f3f7fb;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='none'%3E%3Cpath fill='%23019be1' fill-opacity='.055' d='M0 0H1000V85C660 22 410 200 0 225Z'/%3E%3Cpath fill='%23019be1' fill-opacity='.06' d='M0 0H1000V24C600 55 340 125 0 160Z'/%3E%3Cpath fill='%23019be1' fill-opacity='.065' d='M0 1000V975C360 995 680 865 1000 825V1000Z'/%3E%3Cpath fill='%23019be1' fill-opacity='.07' d='M0 1000C400 990 700 910 1000 930V1000Z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+@media (max-width: 520px) {
+  .login-page .help > div {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+}
+
 </style>

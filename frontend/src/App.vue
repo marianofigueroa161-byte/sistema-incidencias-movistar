@@ -16,10 +16,20 @@ const enlaces = [
   { nombre: 'reportes', ruta: '/reportes', texto: 'Reportes', icono: 'bi-bar-chart' },
 ]
 const enlacesPermitidos = computed(() => enlaces.filter(enlace => ['dashboard', 'incidencias'].includes(enlace.nombre) || ['ADMINISTRADOR', 'SUPERVISOR'].includes(authStore.rol)))
-const cerrandoSesion = computed(() => authStore.cargando)
+const cerrandoSesion = computed(() => authStore.cerrandoSesion)
 const cerrarSesion = async () => {
-  await authStore.cerrarSesion()
-  await router.push('/login')
+  if (cerrandoSesion.value) return
+  try {
+    await authStore.cerrarSesionDefinitiva()
+    await router.replace('/login')
+    authStore.usuario = null
+  } catch {
+    window.alert('No fue posible cerrar la sesión. Inténtalo nuevamente.')
+  } finally {
+    authStore.cerrandoSesion = false
+    authStore.salidaConfirmada = false
+    authStore.ingresoConfirmado = false
+  }
 }
 </script>
 

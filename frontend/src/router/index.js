@@ -21,7 +21,24 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
+  const auth = useAuthStore()
+
+  if (auth.cerrandoSesion) {
+    if (auth.salidaConfirmada && to.name === 'login') {
+      auth.salidaConfirmada = false
+      return true
+    }
+    return false
+  }
+
+  if (auth.ingresoConfirmado) {
+    auth.ingresoConfirmado = false
+
+    if (from.name === 'login' && to.name === 'dashboard' && auth.autenticado) {
+      return true
+    }
+  }
   try {
     const respuesta = await api.get('/sesion')
     const authStore = useAuthStore()

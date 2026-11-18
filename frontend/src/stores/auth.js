@@ -9,6 +9,9 @@ export const useAuthStore = defineStore('auth', {
       ? JSON.parse(usuarioGuardado)
       : null,
     cargando: false,
+    cerrandoSesion: false,
+    ingresoConfirmado: false,
+    salidaConfirmada: false,
   }),
   getters: {
     autenticado: (state) => state.usuario !== null,
@@ -23,6 +26,7 @@ export const useAuthStore = defineStore('auth', {
           clave,
         })
         this.usuario = respuesta.data.usuario
+        this.ingresoConfirmado = true
         localStorage.removeItem('usuario')
         sessionStorage.removeItem('usuario')
         const almacenamiento = recordar
@@ -37,7 +41,23 @@ export const useAuthStore = defineStore('auth', {
         this.cargando = false
       }
     },
+    async cerrarSesionDefinitiva() {
+      if (this.cerrandoSesion) return
+      this.cerrandoSesion = true
+      try {
+        await api.post('/logout')
+      } catch (error) {
+        if (error.response?.status !== 401) {
+          this.cerrandoSesion = false
+          throw error
+        }
+      }
+      localStorage.removeItem('usuario')
+      sessionStorage.removeItem('usuario')
+      this.salidaConfirmada = true
+    },
     async cerrarSesion() {
+      if (this.cerrandoSesion) return
       try {
         await api.post('/logout')
       } finally {

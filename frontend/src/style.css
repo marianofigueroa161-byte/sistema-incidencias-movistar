@@ -257,3 +257,123 @@ html {
   flex-shrink: 0;
   margin-top: auto;
 }
+
+
+.movistar-shell {
+    background-color: #f1f6fc;
+    background-image:
+        radial-gradient(ellipse at 95% 0%, #cce7fa 0%, transparent 38%),
+        radial-gradient(ellipse at 100% 100%, #c6e4fa 0%, transparent 40%);
+}
+
+.movistar-shell .movistar-sidebar {
+    background-color: #062b51;
+    background-image:
+        radial-gradient(ellipse at -20% 15%, #0876b8 0%, transparent 48%),
+        linear-gradient(155deg, #074779, #052b50 55%, #031e3b);
+    box-shadow: 4px 0 20px rgba(5, 42, 78, .09);
+}
+
+.movistar-shell .movistar-brand {
+    border-bottom-color: rgba(69, 192, 255, .3);
+}
+
+.movistar-shell .movistar-brand-icon {
+    color: #019df4;
+    box-shadow: 0 4px 14px rgba(0, 157, 244, .16);
+}
+
+.movistar-shell .movistar-menu-item {
+    color: #e3effb;
+    transition: background-color .18s ease, color .18s ease;
+}
+
+.movistar-shell .movistar-menu-item.active {
+    background: linear-gradient(90deg, rgba(0, 157, 244, .27), rgba(81, 181, 240, .12));
+    border-left-color: #29c4ff;
+    color: #fff;
+}
+
+.movistar-shell .movistar-menu-item:hover {
+    background-color: rgba(96, 190, 245, .16);
+    color: #fff;
+}
+
+.movistar-shell .movistar-menu-item i {
+    color: #8bd5ff;
+}
+
+.movistar-shell .movistar-logout {
+    border-color: rgba(105, 192, 246, .4);
+    background-color: rgba(0, 90, 150, .12);
+}
+
+.movistar-shell .movistar-view,
+.movistar-shell .movistar-view .dashboard,
+.movistar-shell .movistar-view .app-layout,
+.movistar-shell .movistar-view .content {
+    background: transparent;
+}
+
+.movistar-shell .movistar-view .welcome {
+    color: #fff;
+    background:
+        radial-gradient(ellipse at 95% 110%, rgba(0, 196, 255, .48), transparent 45%),
+        repeating-linear-gradient(165deg, transparent 0 20px, rgba(103, 216, 255, .07) 21px 22px),
+        linear-gradient(115deg, #008ecc, #06396c 75%, #05284d);
+    box-shadow: 0 10px 25px rgba(5, 70, 120, .16);
+}
+
+.movistar-shell .movistar-view .stat-card,
+.movistar-shell .movistar-view .panel,
+.movistar-shell .movistar-view .card {
+    background-color: #fff;
+    border: 1px solid #deeaf5;
+    box-shadow: 0 6px 20px rgba(16, 62, 105, .055);
+}
+
+.movistar-shell .movistar-view .stat-card strong {
+    color: #0b365b;
+}
+
+.movistar-shell .movistar-view .stat-card span {
+    color: #526e88;
+}
+
+.movistar-shell .movistar-view .panel-header h3 {
+    color: #103b60;
+    font-weight: 600;
+}
+
+.movistar-shell .movistar-view table thead th {
+    background-color: #e2f0fb;
+    color: #17466d;
+    border-bottom-color: #d8e8f5;
+}
+
+.movistar-shell .movistar-view table tbody tr:hover td {
+    background-color: #f3f9ff;
+}
+
+.movistar-shell .movistar-view .primary-button {
+    background: linear-gradient(110deg, #009fe3, #006cae);
+    box-shadow: 0 5px 14px rgba(0, 123, 190, .13);
+}
+
+.movistar-shell button:focus-visible {
+    outline: 2px solid #16aaff;
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .movistar-shell .movistar-menu-item {
+        transition: none;
+    }
+}
+
+
+@media (min-width: 992px) {
+    .movistar-shell .movistar-view .welcome {
+        margin-top: 38px;
+    }
+}
